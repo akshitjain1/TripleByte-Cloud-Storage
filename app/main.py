@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-# Create the FastAPI application instance.
-# `title` and `description` show up in the auto-generated docs.
+from app.database import get_db
+
 app = FastAPI(
     title="Cloud File Storage System",
     description="A secure cloud-based file management system using AWS S3.",
@@ -11,16 +13,16 @@ app = FastAPI(
 
 @app.get("/health")
 def health_check():
-    """
-    A simple health-check endpoint.
-    Used by load balancers and monitoring tools to verify the app is alive.
-    """
     return {"status": "ok"}
+
+
+@app.get("/health/db")
+def db_health(db: Session = Depends(get_db)):
+    """Verifies the app can actually reach the database."""
+    result = db.execute(text("SELECT 1")).scalar()
+    return {"db": "ok", "result": result}
 
 
 @app.get("/")
 def root():
-    return {
-        "message": "Welcome to the Cloud File Storage System API",
-        "docs": "/docs",
-    }
+    return {"message": "Welcome to the Cloud File Storage System API", "docs": "/docs"}
