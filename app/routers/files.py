@@ -19,7 +19,13 @@ router = APIRouter(
     prefix="/files",
     tags=["files"],
 )
-
+ALLOWED_TYPES = {
+    "application/pdf",
+    "text/plain",
+    "image/png",
+    "image/jpeg",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
 @router.post(
     "/upload",
     response_model=FileUploadResponse,
@@ -27,24 +33,22 @@ router = APIRouter(
 )
 def upload_file(
     uploaded_file: UploadFile = FastAPIFile(...),
-    ALLOWED_TYPES = {
-    "application/pdf",
-    "text/plain",
-    "image/png",
-    "image/jpeg",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-},
-    
+      
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     Upload file to S3 and store metadata in PostgreSQL.
     """
+    logger.info(
+        f"Filename={uploaded_file.filename}, "
+        f"ContentType={uploaded_file.content_type}"
+    )
+    
     if uploaded_file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=400,
-            detail="File type not allowed",
+            detail=f"File type not allowed: {uploaded_file.content_type}",
         )
     
     uploaded_file.file.seek(0, 2)
